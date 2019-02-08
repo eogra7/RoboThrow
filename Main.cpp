@@ -2,7 +2,8 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <string.h>
-#include <thread>  
+#include <thread> 
+#include <unistd.h>
 
 #include "GPIO.h"
 
@@ -77,10 +78,9 @@ public:
         : GPIO(number){};
     void GenerateVariablePWM(int period, int first_pulse, int last_pulse,
         int num_periods);
-        
+
     
 };
-
 
 void GPIOExt::GenerateVariablePWM(int period, int first_pulse, int last_pulse, int num_periods)
 {
@@ -97,11 +97,11 @@ void GPIOExt::GenerateVariablePWM(int period, int first_pulse, int last_pulse, i
 
 class RoboCop {
 private:
-    GPIOExt base = GPIOExt(S1_PIN);
-    GPIOExt bicep = GPIOExt(S2_PIN);
-    GPIOExt eblow = GPIOExt(S3_PIN);
-    GPIOExt wrist = GPIOExt(S4_PIN);
-    GPIOExt gripper = GPIOExt(S5_PIN);
+    GPIOExt* base;
+    GPIOExt* bicep;
+    GPIOExt* eblow;
+    GPIOExt* wrist;
+    GPIOExt* gripper;
     
 
     
@@ -113,20 +113,42 @@ private:
     
     bool active;
     
-    void wristLoop() {
-        if(active) {
-            wrist.GeneratePWM(PERIOD, wrist_pos, 1);
+    void baseLoop() {
+        while(true) {
+            base->GeneratePWM(PERIOD, degreeToOnDelay(base_pos), 1);
+        }
+    }
+    
+    void bicepLoop() {
+        while(true) {
+            bicep->GeneratePWM(PERIOD, degreeToOnDelay(bicep_pos), 1);
+        }
+    }
+    
+    void eblowLoop() {
+        while(true) {
+            eblow->GeneratePWM(PERIOD, degreeToOnDelay(elbow_pos), 1);
         }
     }
     
     void gripperLoop() {
-        if (active) {
-            gripper.GeneratePWM(PERIOD, gripper_pos, 1);
+        while(true) {
+            gripper->GeneratePWM(PERIOD, degreeToOnDelay(gripper_pos), 1);
+        }
+    }
+    void wristLoop() {
+        while(true) {
+            wrist->GeneratePWM(PERIOD, degreeToOnDelay(wrist_pos), 1);
         }
     }
     
+    
+    
     thread wrist_thread;
     thread gripper_thread;
+    thread elbow_thread;
+    thread base_thread;
+    thread bicep_thread;
     
 public:
     
@@ -138,6 +160,15 @@ public:
         gripper_pos = 90;
         elbow_pos = 90;
         
+        base = new GPIOExt(S1_PIN);
+        bicep = new GPIOExt(S2_PIN);
+        eblow = new GPIOExt(S3_PIN);
+        wrist = new GPIOExt(S4_PIN);
+        gripper = new GPIOExt(S5_PIN);
+        
+        base_thread = thread(&RoboCop::baseLoop, this);
+        bicep_thread = thread(&RoboCop::bicepLoop, this);
+        elbow_thread = thread(&RoboCop::eblowLoop, this);
         wrist_thread = thread(&RoboCop::wristLoop, this);
         gripper_thread = thread(&RoboCop::gripperLoop, this);
     }
@@ -178,47 +209,6 @@ public:
 
 int main(int argc, char* argv[])
 {
-    //bool fast = (argc > 1 && ((strcmp(argv[1], "-f") == 0) || (strcmp(argv[1], "--fast") == 0)));
-
-    // cout << "Servo\tName" << endl;
-    // cout << "1\tBase" << endl;
-    // cout << "2\tBicep" << endl;
-    // cout << "3\tElbow" << endl;
-    // cout << "4\tWrist" << endl;
-    // cout << "5\tGripper" << endl
-    //      << endl;
-
-    // cout << "Enter servo number (1-5): " << endl;
-    // int usr_servo;
-    // acceptInt(usr_servo, 1, 5);
-    // cout << usr_servo << endl;
-
-    // float usr_angle_start;
-    // cout << "Enter start angle (0-180): " << endl;
-    // acceptFloat(usr_angle_start, 0, 180);
-
-    // float usr_angle_end;
-    // cout << "Enter end angle (0-180): " << endl;
-    // acceptFloat(usr_angle_end, 0, 180);
-
-    // int usr_speed;
-    // cout << "Enter speed in deg/s: " << endl;
-    // acceptInt(usr_speed, 1, SHRT_MAX);
-
-    // int total_distance_degrees = abs(usr_angle_end - usr_angle_start);
-    // double total_time_ms = total_distance_degrees / (usr_speed / 1000.0);
-    // int num_pulses = (int)(total_time_ms / 20.0);
-
-    // GPIOExt gpio(servoToPin(usr_servo));
-    // if (!fast)
-    //     gpio.GeneratePWM(20000, degreeToOnDelay(usr_angle_start), 50); // 50 pulses @ 20ms = 1000ms (1sec)
-    // gpio.GenerateVariablePWM(20000,
-    //     degreeToOnDelay(usr_angle_start),
-    //     degreeToOnDelay(usr_angle_end),
-    //     num_pulses);
-    // if (!fast)
-    //     gpio.GeneratePWM(20000, degreeToOnDelay(usr_angle_end), 50); // 50 pulses @ 20ms = 1000ms (1sec)
-    // // Done
     
     RoboCop* arm = new RoboCop();
     arm->activate();
@@ -226,24 +216,80 @@ int main(int argc, char* argv[])
     int usr_servo;
     float usr_angle;
     
+    bool b1;
+    bool b2;
+    bool b3;
+    bool b4;
+    bool b5;
+    
+    int base_pos;
+    int bicep_pos;
+    int elbow_pos;
+    int wrist_pos;
+    int gripper_pos;
+            b1 = false;
+        b2 = false;
+        b3 = false;
+        b4 = false;
+        b5 = false;
     while(true) {
+
+        
         cout << "Servo\tName" << endl;
-        cout << "1\tBase" << endl;
-        cout << "2\tBicep" << endl;
-        cout << "3\tElbow" << endl;
-        cout << "4\tWrist" << endl;
-        cout << "5\tGripper" << endl
+        cout << "1\tBase\t"<< base_pos << endl;
+        cout << "2\tBicep\t"<< bicep_pos << endl;
+        cout << "3\tElbow\t" << elbow_pos << endl;
+        cout << "4\tWrist\t" << wrist_pos << endl;
+        cout << "5\tGripper\t" << gripper_pos << endl;
+        cout << "6\tExecute" << endl
              << endl;
     
-        cout << "Enter servo number (1-5): " << endl;
-        acceptInt(usr_servo, 1, 5);
-    
+        cout << "Enter action number (1-6): " << endl;
+        acceptInt(usr_servo, 1, 6);
+        
+        if(usr_servo != 6) {
         cout << "Enter angle (0-180): " << endl;
         acceptFloat(usr_angle, 0, 180);
+        }
+        if(usr_servo == 1)
+        {
+        base_pos = usr_angle;
+        b1 = true;
+        }
+        if(usr_servo == 2) 
+        {
+        bicep_pos = usr_angle;
+        b2 = true;
+        }
+        if(usr_servo == 3) 
+        {
+        elbow_pos = usr_angle;
+        b3 = true;
+        }
+        if(usr_servo == 4) 
+        {
+        wrist_pos = usr_angle;
+        b4 = true;
+        }
+        if(usr_servo == 5) 
+        {
+        gripper_pos = usr_angle;
+        b5 = true;
+        }
+        if(usr_servo == 6) {
+                if(b1) arm->setBasePos(base_pos);
+                if(b2) arm->setBicepPos(bicep_pos);
+                if(b3) arm->setElbowPos(elbow_pos);
+                 if(b4) arm->setWristPos(wrist_pos);
+                  if(b5) arm->setGripperPos(gripper_pos);
+                          b1 = false;
+        b2 = false;
+        b3 = false;
+        b4 = false;
+        b5 = false;
+        }
         
-        if(usr_servo == 4) arm->setWristPos(usr_angle);
-        if(usr_servo == 5) arm->setGripperPos(usr_angle);
-        
+
     }
 
     

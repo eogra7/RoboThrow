@@ -1,6 +1,6 @@
 sources = $(wildcard *.cpp)
 objects = $(sources:.cpp=.o)
-CPPFLAGS = -std=c++11
+CPPFLAGS = -g -std=c++0x -pthread
 
 runRoboThrow: $(objects)
 	g++ $(CPPFLAGS) -o $@ $^ 
