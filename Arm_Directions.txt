@@ -1,0 +1,15 @@
+Base:   =90 is center
+        >90 is clockwise
+        <90 is counterclockwise
+Bicep:  =90 is straight up
+        >90 is towards bicep spring
+        <90 is away from bicep spring
+Elbow:  =90 is level with bicep
+        >90 is towards bicep spring
+        <90 is away from bicep spring
+Wrist:  =90 is level with the elbow sections
+        >90 is away from the gripper control box
+        <90 is towards the gripper control box
+Gripper:=90 barely closed
+        >90 is open
+        <90 closed with more force
