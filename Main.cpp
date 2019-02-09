@@ -102,15 +102,11 @@ class ArmAction {
     int s_wrist;
     int s_gripper;
     
-    int e_base;
-    int e_bicep;
-    int e_elbow;
-    int e_wrist;
-    int e_gripper;
-    
     bool concurrent;
     int speed;
     bool fast;
+    
+    ArmAction(int s_base, int s_elbow, 
 }
 
 class RoboCop {
